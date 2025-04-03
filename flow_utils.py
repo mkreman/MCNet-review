@@ -1,6 +1,7 @@
 import torch
 import torchgeometry as tgm
 import torch.nn.functional as F
+import cv2
 
 def bilinear_sampler(img, coords, mode='bilinear', mask=False):
     """ Wrapper for grid_sample, uses pixel coordinates """
@@ -46,7 +47,9 @@ def disp_to_coords(four_point, coords, downsample=4):
     four_point_new = four_point_org + four_point
     four_point_org = four_point_org.flatten(2).permute(0, 2, 1)
     four_point_new = four_point_new.flatten(2).permute(0, 2, 1)
-    H = tgm.get_perspective_transform(four_point_org, four_point_new)
+    # H = tgm.get_perspective_transform(four_point_org, four_point_new)
+    H = torch.tensor(cv2.getPerspectiveTransform(four_point_org.cpu().numpy(), four_point_new.cpu().numpy()),
+        device='cuda:0', dtype=torch.float32).unsqueeze(0)
     gridy, gridx = torch.meshgrid(torch.linspace(0, coords.shape[3]-1, steps=coords.shape[3]), torch.linspace(0, coords.shape[2]-1, steps=coords.shape[2]))
     points = torch.cat((gridx.flatten().unsqueeze(0), gridy.flatten().unsqueeze(0), torch.ones((1, coords.shape[3] * coords.shape[2]))),
                        dim=0).unsqueeze(0).repeat(coords.shape[0], 1, 1).to(four_point.device)

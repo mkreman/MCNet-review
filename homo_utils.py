@@ -15,10 +15,12 @@ def generate_homo(img1, img2, homo_parameter, transform=None):
     height, width = homo_parameter["height"], homo_parameter["width"]
     x = random.randint(marginal, width - marginal - patch_size)
     y = random.randint(marginal, height - marginal - patch_size)
+
     top_left = (x, y)
     bottom_left = (x, patch_size + y - 1)
     bottom_right = (patch_size + x - 1, patch_size + y - 1)
     top_right = (patch_size + x - 1, y)
+    
     four_pts = np.array([top_left, top_right, bottom_left, bottom_right])
     img1 = img1[top_left[1]-marginal:bottom_right[1]+marginal+1, top_left[0]-marginal:bottom_right[0]+marginal+1, :]
     img2 = img2[top_left[1]-marginal:bottom_right[1]+marginal+1, top_left[0]-marginal:bottom_right[0]+marginal+1, :]

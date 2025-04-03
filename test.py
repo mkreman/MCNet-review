@@ -1,16 +1,28 @@
 import numpy as np
 import os, time, pprint
+import torch
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+os.environ["PATH"] = "/usr/local/cuda-11.8/bin:" + os.environ.get("PATH", "")
+os.environ["CUDA_HOME"] = "/usr/local/cuda-11.8"
+os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda-11.8/lib64'
+print(f"CUDA: {torch.cuda.is_available()}")
+
+
 import argparse
 import warnings
 warnings.filterwarnings("ignore")
-import torch
 import datasets
 from network import *
 from utils import *
 from homo_utils import *
-            
+
+
 def test(args, glob_iter=None, homo_model=None):
-    device = torch.device('cuda:'+ str(args.gpuid))
+    if torch.cuda.is_available():
+        device = torch.device('cuda:'+ str(args.gpuid))
+    else:
+        device = 'cpu'
     test_loader = datasets.fetch_dataloader(args, split="test")
     if homo_model == None:
         homo_model = MCNet(args).to(device)
@@ -29,22 +41,25 @@ def test(args, glob_iter=None, homo_model=None):
                 for key, value in data_batch.items(): 
                     if type(data_batch[key]) == torch.Tensor: data_batch[key] = data_batch[key].to(device)    
                 pred_h4p_12 = homo_model(data_batch)
+                print(f"Prediction: {pred_h4p_12[-1]}")
                 # calculate metric
-                mace = ((pred_h4p_12[-1] - data_batch["four_gt"])**2).sum(dim=-1).sqrt().mean(dim=-1).detach().cpu().numpy()
-                mace_array = np.concatenate([mace_array, mace])
+                # mace = ((pred_h4p_12[-1] - data_batch["four_gt"])**2).sum(dim=-1).sqrt().mean(dim=-1).detach().cpu().numpy()
+                # mace_array = np.concatenate([mace_array, mace])
+        # print(f"MACE Array for all test images:\n{mace_array}")
     
-    print(f"mace:{round(mace_array.mean(), 3)}")
-    if not args.nolog:
-        visualize_predict_image(args, data_batch, pred_h4p_12, glob_iter)
+    # print(f"mace:{round(mace_array.mean(), 3)}")
+    # if not args.nolog:
+    # visualize_predict_image(args, data_batch, pred_h4p_12, glob_iter)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, default='test', help='Train or test', choices=['train', 'test'])
-    parser.add_argument('--gpuid', type=int, default=1)
+    parser.add_argument('--gpuid', type=int, default=0)
     parser.add_argument('--note', type=str, default='', help='experiment notes')
     parser.add_argument('--dataset', type=str, default='mscoco', help='dataset')
+    parser.add_argument('--custom_dataset_path', type=str, default='mscoco', help='Path to the folder of custom images')
     parser.add_argument('--log_dir', type=str, default='logs', help='The log path')
-    parser.add_argument('--nolog', action='store_true', default=False, help='save log file or not')
+    parser.add_argument('--nolog', action='store_true', default=True, help='save log file or not')
     parser.add_argument('--checkpoint', type=str, default="model.pth", help='Test model name')
     parser.add_argument('--batch_size', type=int, default=16) 
     parser.add_argument('--print_freq', type=int, default=100)
@@ -60,7 +75,7 @@ def main():
     parser.add_argument('--speed_threshold', type=float, default=1, help='use speed-up when L1 < x')
     args = parser.parse_args()
     
-    if not args.nolog:
+    if args.nolog:
         args.log_full_dir = os.path.join(args.log_dir, time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime()) + "_" + args.dataset + "_" + args.note)
         if not os.path.exists(args.log_full_dir): os.makedirs(args.log_full_dir)
         sys.stdout = Logger_(os.path.join(args.log_full_dir, f'record.log'), sys.stdout)
