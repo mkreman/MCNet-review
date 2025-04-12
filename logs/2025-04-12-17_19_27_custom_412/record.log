@@ -1,0 +1,29 @@
+{'batch_size': 1,
+ 'checkpoint': './weight/mscoco.pth',
+ 'dataset': 'custom',
+ 'downsample': [4, 2, 1],
+ 'epsilon': 0.1,
+ 'gpuid': 0,
+ 'img1': '/home/mayank.mds2023/CV/MCNet/Photos-002/20250402_135410.jpg',
+ 'img2': '/home/mayank.mds2023/CV/MCNet/Photos-002/20250402_135412.jpg',
+ 'iter': [2, 2, 2],
+ 'log_dir': 'logs',
+ 'log_full_dir': 'logs/2025-04-12-17_19_27_custom_412',
+ 'loss': 'speedup',
+ 'lr': 0.0004,
+ 'mode': 'test',
+ 'nolog': True,
+ 'note': '412',
+ 'num_steps': 120000,
+ 'output_path': '/home/mayank.mds2023/CV/MCNet/output',
+ 'print_freq': 100,
+ 'seed': 512,
+ 'speed_threshold': 1,
+ 'val_freq': 10000}
+Test with 1 image pairs
+test with pretrained model
+Prediction: tensor([[[16.8875,  3.9011],
+         [17.7666, -2.1498],
+         [19.6761,  0.2082],
+         [20.5928,  1.6908]]], device='cuda:0')
+Results saved to logs/2025-04-12-17_19_27_custom_412

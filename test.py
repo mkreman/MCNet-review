@@ -41,15 +41,14 @@ def test(args, glob_iter=None, homo_model=None):
                 for key, value in data_batch.items(): 
                     if type(data_batch[key]) == torch.Tensor: data_batch[key] = data_batch[key].to(device)    
                 pred_h4p_12 = homo_model(data_batch)
-                print(f"Prediction: {pred_h4p_12[-1]}")
                 # calculate metric
-                # mace = ((pred_h4p_12[-1] - data_batch["four_gt"])**2).sum(dim=-1).sqrt().mean(dim=-1).detach().cpu().numpy()
-                # mace_array = np.concatenate([mace_array, mace])
-        # print(f"MACE Array for all test images:\n{mace_array}")
+                mace = ((pred_h4p_12[-1] - data_batch["four_gt"])**2).sum(dim=-1).sqrt().mean(dim=-1).detach().cpu().numpy()
+                mace_array = np.concatenate([mace_array, mace])
     
-    # print(f"mace:{round(mace_array.mean(), 3)}")
-    # if not args.nolog:
-    # visualize_predict_image(args, data_batch, pred_h4p_12, glob_iter)
+    print(f"mace:{round(mace_array.mean(), 3)}")
+    if not args.nolog:
+        visualize_predict_image(args, data_batch, pred_h4p_12, glob_iter)
+
 
 def main():
     parser = argparse.ArgumentParser()

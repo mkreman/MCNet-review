@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 import os, json, cv2
+import numpy as np
 from glob import glob
 import matplotlib.pyplot as plt
 from homo_utils import generate_homo
@@ -160,43 +161,55 @@ class homo_dataset(Dataset):
 #                 "large_img1_warp":large_img1_warp, "large_img2":large_img2}
 
 class CustomDataset(Dataset):
-    """#! Give the patch of both images
+    """Give the patch of both images
     """
-    def __init__(self, custom_dataset_path):
+    def __init__(self, img1_path, img2_path):
         self.homo_parameter = {"marginal":32, "perturb":32, "patch_size":128}
-        self.image_list_img1 = ['/home/mayank.mds2023/CV/MCNet/Photos-002/cropped_20250402_135410.jpg']
-        self.image_list_img2 = ['/home/mayank.mds2023/CV/MCNet/Photos-002/cropped_20250402_135412.jpg']
+        self.image1 = [img1_path]
+        self.image2 = [img2_path]
 
     def __len__(self):
-        return len(self.image_list_img1)
+        return len(self.image1)
 
     def __getitem__(self, index):
-        img1 = cv2.imread(self.image_list_img1[index])
-        img2 = cv2.imread(self.image_list_img2[index])
-        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
+        img1 = cv2.imread(self.image1[index])
+        img2 = cv2.imread(self.image2[index])
 
-        img1 = torch.from_numpy(img1).float().permute(2, 0, 1)
-        img2 = torch.from_numpy(img2).float().permute(2, 0, 1)
+        img1 = cv2.resize(img1, (320, 240))
+        img2 = cv2.resize(img2, (320, 240))
 
-        # img1 = cv2.resize(img1, (320, 240))
-        # img2 = cv2.resize(img2, (320, 240))
-            
-        # self.homo_parameter["height"], self.homo_parameter["width"], _ = img1.shape
-        
-        # patch_img1_warp, patch_img2, four_gt, org_pts, dst_pts, large_img1_warp, large_img2 = generate_homo(img1, img2, homo_parameter=self.homo_parameter, transform=None)
-        # print(patch_img1_warp.shape, patch_img2.shap)
-        return {"patch_img1_warp":img1, "patch_img2":img2,
-                # "four_gt":four_gt,
-                # "org_pts":org_pts, "dst_pts":dst_pts,
-                # "large_img1_warp":large_img1_warp, "large_img2":large_img2
-                }
+        top_left = (img1.shape[1]//2-64, img1.shape[0]//2-64)
+        bottom_right = (img1.shape[1]//2+64, img1.shape[0]//2+64)
+
+        cropped_img1 = img1[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0], :]
+        cropped_img2 = img2[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0], :]
+
+        cropped_img1 = cv2.cvtColor(cropped_img1, cv2.COLOR_BGR2RGB) / 255
+        cropped_img2 = cv2.cvtColor(cropped_img2, cv2.COLOR_BGR2RGB) / 255
+
+        four_point_org = np.array(
+            [[top_left[0], top_left[1]], 
+            [bottom_right[0], top_left[1]], 
+            [bottom_right[0], bottom_right[1]], 
+            [top_left[0], bottom_right[1]]], dtype=np.float32
+        )
+
+        cropped_img1 = torch.from_numpy(cropped_img1).float().permute(2, 0, 1)
+        cropped_img2 = torch.from_numpy(cropped_img2).float().permute(2, 0, 1)
+
+        return {
+            "img1": img1, 
+            "img2": img2,
+            "patch_img1_warp":cropped_img1, 
+            "patch_img2":cropped_img2, 
+            "four_gt":four_point_org
+        }
 
 
 def fetch_dataloader(args, split='test'):
     if args.dataset == "googleearth": dataset = GoogleEarth(split=split)
     elif args.dataset == "mscoco": dataset = MSCOCO(split=split)
-    elif args.dataset == "custom": dataset = CustomDataset(args.custom_dataset_path)
+    elif args.dataset == "custom": dataset = CustomDataset(args.img1, args.img2)
     else: dataset = homo_dataset(split=split, dataset=args.dataset, args=args)
     
     dataloader = DataLoader(dataset, batch_size=args.batch_size, pin_memory=True, shuffle=True, num_workers=16, drop_last=False)
