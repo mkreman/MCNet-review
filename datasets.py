@@ -178,8 +178,9 @@ class CustomDataset(Dataset):
         img1 = cv2.resize(img1, (320, 240))
         img2 = cv2.resize(img2, (320, 240))
 
-        top_left = (img1.shape[1]//2-64, img1.shape[0]//2-64)
-        bottom_right = (img1.shape[1]//2+64, img1.shape[0]//2+64)
+        ##! set custom points for img1
+        top_left = (img1.shape[1]//2-64 + 70, img1.shape[0]//2-64)
+        bottom_right = (img1.shape[1]//2+64 + 70, img1.shape[0]//2+64)
 
         cropped_img1 = img1[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0], :]
         cropped_img2 = img2[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0], :]
@@ -202,7 +203,9 @@ class CustomDataset(Dataset):
             "img2": img2,
             "patch_img1_warp":cropped_img1, 
             "patch_img2":cropped_img2, 
-            "four_gt":four_point_org
+            "four_gt":four_point_org,
+            'top_left': torch.tensor(top_left),
+            'bottom_right': torch.tensor(bottom_right),
         }
 
 

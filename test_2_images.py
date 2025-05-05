@@ -20,7 +20,18 @@ from homo_utils import *
 
 def save_outputs(prediction, batch, output_path):
     four_point_org = batch['four_gt'].cpu().numpy()
-    four_point_new = prediction + four_point_org
+    top_left = batch['top_left'].squeeze().cpu().numpy()
+    bottom_right = batch['bottom_right'].squeeze().cpu().numpy()
+
+    ##! set custom points for img2 here
+    four_point_org_ = np.array(
+            [[50, top_left[1]], 
+            [178, top_left[1]], 
+            [178, bottom_right[1]], 
+            [50, bottom_right[1]]], dtype=np.float32
+        )
+    
+    four_point_new = prediction + four_point_org_
     
     img1 = batch['img1'].squeeze(0).cpu().numpy()
     img2 = batch['img2'].squeeze(0).cpu().numpy()
@@ -40,7 +51,7 @@ def save_outputs(prediction, batch, output_path):
     cv2.imwrite(f'{output_path}/img_pred.jpg', img_pred)
 
 
-def test(args, glob_iter=None, homo_model=None):
+def test(args, homo_model=None):
     if torch.cuda.is_available():
         device = torch.device('cuda:'+ str(args.gpuid))
     else:
@@ -57,12 +68,11 @@ def test(args, glob_iter=None, homo_model=None):
     homo_model.eval()
 
     with torch.no_grad():
-        for test_repeat in range(1): # repeat test multiple times to get stable result
-            for i, data_batch in enumerate(test_loader):
-                for key, value in data_batch.items(): 
-                    data_batch[key] = value.to(device)
-                pred_h4p_12 = homo_model(data_batch)
-                print(f"Prediction: {pred_h4p_12[-1]}")
+        for data_batch in test_loader:
+            for key, value in data_batch.items(): 
+                data_batch[key] = value.to(device)
+            pred_h4p_12 = homo_model(data_batch)
+            print(f"Prediction: {pred_h4p_12[-1]}")
     
     save_outputs(pred_h4p_12[-1].cpu().numpy(), data_batch, args.log_full_dir)
     print("Results saved to", args.log_full_dir)
